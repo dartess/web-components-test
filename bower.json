@@ -1,0 +1,20 @@
+{
+  "name": "27386-pink",
+  "description": "Личный проект «Пинк» от HTML Academy",
+  "main": "",
+  "authors": [
+    "Сергей Козлов"
+  ],
+  "license": "MIT",
+  "homepage": "",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "webcomponentsjs": "webcomponents/webcomponentsjs#^1.0.17"
+  }
+}

@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>demo</title>
+    <!-- <link rel="stylesheet" href="css/style.min.css"> -->
+
+    <script src="./route.min.js"></script>
+
+    <template id="t-layout">
+        <style>
+            :host {
+                display: block;
+                background-color: #ccddff;
+            }
+            :host nav {
+                background-color: red;
+            }
+            :host span {
+                background-color: red;
+            }
+        </style>
+        <header>
+            <nav>
+                <ul>
+                    <li>
+                        <t-link href="/"><span>главная</span></t-link>
+                    </li>
+                    <li>
+                        <t-link href="/news/">новости</t-link>
+                    </li>
+                    <li>
+                        <t-link href="/news/test/">новость test</t-link>
+                    </li>
+                    <li>
+                        <t-link href="/news/lul/">новость lul</t-link>
+                    </li>
+                    <li>
+                        <t-link href="/barcodes/123-456/">/barcodes/123-456/</t-link>
+                    </li>
+                </ul>
+            </nav>
+        </header>
+        <main>
+            <slot name="title"></slot>
+            <slot name="content"></slot>
+        </main>
+        <footer>footer content</footer>
+    </template>
+    
+    <template id="t-link">
+        <style>
+            :host {
+                display: block;
+                background-color: green;
+                padding: 10px;
+            }
+        </style>
+        <a>
+            <span>
+                <slot></slot>
+            </span>
+        </a>
+    </template>
+        
+    <template id="t-main">
+        <div class="main">main</div>
+    </template>
+    
+    <template id="t-news-list">
+        <div class="news-list">news-list</div>
+    </template>
+    
+    <template id="t-news-detail">
+        <div class="news-detail">news-detail</div>
+    </template>
+    
+    <template id="t-barcodes">
+        <div class="barcodes">barcodes</div>
+    </template>
+</head>
+<body>
+
+    <!-- todo: server настроить -->
+    <!-- todo: параметры, вывод -->
+    <!-- todo: параметры, фетч -->
+    <!-- todo: заголовок -->
+    <!-- todo: глобальный стейт (redux или аналог https://abraxabra.ru/blog/javascript/what-to-use-mobx-or-redux/) -->
+    <!-- todo: стили -->
+    <!-- todo: файловая структура -->
+    <!-- todo: препроцессоры -->
+    <!-- todo: полифилы -->
+    <!-- todo: импорты -->
+
+    <t-router>
+        <t-route path="/" component="t-main"></t-route>
+        <t-route path="/news" component="t-news-list"></t-route>
+        <t-route path="/news/*" component="t-news-detail"></t-route>
+        <t-route path="/barcodes/*-*" component="t-barcodes"></t-route>
+        <t-layout>
+            <h1 slot="title">default title</h1>
+            <div slot="content"></div>
+        </t-layout>
+    </t-route>
+
+<script>
+
+class TLink extends HTMLElement {
+    constructor() {
+        super();
+    }
+
+    get href() {
+        return this.getAttribute('href');
+    }
+
+    connectedCallback() {
+        const shadowRoot = this.attachShadow({mode: 'open'});
+        const tmpl = document.getElementById('t-link');
+        const node = document.importNode(tmpl.content, true);
+        shadowRoot.appendChild(node);
+        this.link = shadowRoot.querySelector('a');
+        this.link.href = this.href;
+
+        this.addEventListener('click', event => {
+            event.preventDefault();
+            route(this.href);
+        })
+    }
+}
+customElements.define("t-link", TLink)
+
+class TMain extends HTMLElement {
+    constructor(...args) {
+        super();
+
+        console.log(args);
+    }
+
+    connectedCallback() {
+        const shadowRoot = this.attachShadow({mode: 'open'});
+        const tmpl = document.getElementById('t-main');
+        const node = document.importNode(tmpl.content, true);
+        shadowRoot.appendChild(node);
+    }
+}
+customElements.define("t-main", TMain)
+window['TMain'] = TMain;
+
+class TNewsList extends HTMLElement {
+    constructor(...args) {
+        super();
+
+        console.log(args);
+    }
+
+    connectedCallback() {
+        const shadowRoot = this.attachShadow({mode: 'open'});
+        const tmpl = document.getElementById('t-news-list');
+        const node = document.importNode(tmpl.content, true);
+        shadowRoot.appendChild(node);
+    }
+}
+customElements.define("t-news-list", TNewsList);
+window['TNewsList'] = TNewsList;
+
+class TNewsDetail extends HTMLElement {
+    constructor(...args) {
+        super();
+
+        console.log(args);
+    }
+
+    connectedCallback() {
+        const shadowRoot = this.attachShadow({mode: 'open'});
+        const tmpl = document.getElementById('t-news-detail');
+        const node = document.importNode(tmpl.content, true);
+        shadowRoot.appendChild(node);
+    }
+}
+customElements.define("t-news-detail", TNewsDetail);
+window['TNewsDetail'] = TNewsDetail;
+
+class TRoute extends HTMLElement {
+    constructor() {
+        super();
+    }
+    
+    get path() {
+        return this.getAttribute('path');
+    }
+
+    get component() {
+        return this.getAttribute('component');
+    }
+
+    connectedCallback() {
+        route(this.path, (...parameters) => {
+            this.dispatchEvent(new CustomEvent('t.route', {
+                bubbles: true,
+                detail: {
+                    path: this.path,
+                    component: this.component,
+                    parameters,
+                }
+            }));
+        })
+    }
+}
+customElements.define("t-route", TRoute)
+
+class TRouter extends HTMLElement {
+    constructor() {
+        super();
+    }
+
+    connectedCallback() {
+        this.addEventListener('t.route', event => {
+            const {component, parameters} = event.detail;
+            const constructor = window[makeUpperCamelCase(component)];
+            if (constructor) {
+                const newContent = new constructor(parameters);
+                newContent.slot = 'content';
+                const contentNode = this.querySelector('t-layout').querySelector(`[slot="content"]`);
+                contentNode.innerHTML = '';
+                contentNode.appendChild(newContent);
+            } else {
+                // 404 ? 
+            }
+        })
+
+        route.base('/');
+
+        route.start(true);
+    }
+}
+customElements.define("t-router", TRouter)
+
+class TLayout extends HTMLElement {
+    constructor() {
+        super();
+    }
+
+    connectedCallback() {
+        const shadowRoot = this.attachShadow({mode: 'open'});
+        const tmpl = document.getElementById('t-layout');
+        const node = document.importNode(tmpl.content, true);
+        shadowRoot.appendChild(node);
+    }
+}
+customElements.define("t-layout", TLayout);
+
+function makeUpperCamelCase(text) {
+    const capitalizedBlockNoFirstLetter = text.replace(/-([a-z])/g, (str, a) => a.toUpperCase());
+    return capitalizedBlockNoFirstLetter.charAt(0).toUpperCase() + capitalizedBlockNoFirstLetter.slice(1);
+}
+
+</script>
+
+</body>
+</html>
